@@ -1,600 +1,245 @@
-# 🛒 Multi-Tenant E-Commerce SaaS Backend
+# 🔐 Rust Authentication API
 
-> A production-oriented multi-tenant e-commerce SaaS backend built with **Rust, Axum, PostgreSQL, SQLx, Redis, and Docker**.
->
-> Designed as a **modular monolith** using **Hexagonal Architecture (Ports & Adapters)**, with explicit domain boundaries, tenant isolation, transactional workflows, concurrency-safe inventory management, and production-focused observability.
+> A backend authentication system built with Rust and Axum, designed with modular architecture, clear dependency boundaries, and production-oriented backend practices.
 
-<p align="center">
+🚧 **Status: In Development**
 
-![Rust](https://img.shields.io/badge/Rust-1.85%2B-orange?style=for-the-badge\&logo=rust)
-![Axum](https://img.shields.io/badge/Axum-Web_Framework-blue?style=for-the-badge)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge\&logo=postgresql)
-![SQLx](https://img.shields.io/badge/SQLx-Database_Access-orange?style=for-the-badge)
-![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge\&logo=redis)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge\&logo=docker)
-![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=for-the-badge\&logo=githubactions)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+This project is currently focused on building a complete authentication module before expanding into additional e-commerce capabilities.
 
-</p>
+The goal is not to build a large application as quickly as possible, but to understand and implement the backend fundamentals required to build maintainable production services.
 
 ---
 
-## 📋 Table of Contents
+## 🎯 Project Goals
 
-* [Overview](#-overview)
-* [Engineering Highlights](#-engineering-highlights)
-* [Architecture](#-architecture)
-* [Architectural Boundaries](#-architectural-boundaries)
-* [Project Structure](#-project-structure)
-* [Module Structure](#-module-structure)
-* [Dependency Direction](#-dependency-direction)
-* [Authentication](#-authentication)
-* [Authorization](#-authorization)
-* [Multi-Tenancy](#-multi-tenancy)
-* [Database Architecture](#-database-architecture)
-* [Transactions](#-transactions)
-* [Concurrency](#-concurrency)
-* [Caching](#-caching)
-* [Background Jobs](#-background-jobs)
-* [Error Handling](#-error-handling)
-* [API Design](#-api-design)
-* [Security](#-security)
-* [Testing](#-testing)
-* [Observability](#-observability)
-* [Local Development](#-local-development)
-* [Docker](#-docker)
-* [CI/CD](#-cicd)
-* [Performance](#-performance)
-* [Failure Handling](#-failure-handling)
-* [Architecture Decision Records](#-architecture-decision-records)
-* [Production Checklist](#-production-checklist)
-* [Roadmap](#-roadmap)
-* [License](#-license)
+This project is being built to explore and demonstrate:
+
+* Rust backend development
+* REST API design
+* Authentication and authorization
+* PostgreSQL database integration
+* Password hashing with Argon2
+* JWT-based authentication
+* Structured error handling
+* Dependency injection and application wiring
+* Modular architecture
+* Ports & Adapters / Hexagonal Architecture
+* Testing backend business logic
+* Production-oriented project structure
 
 ---
 
-# 🚀 Overview
+## 🛠️ Tech Stack
 
-This project is a **multi-tenant e-commerce SaaS backend** written in Rust.
-
-Multiple independent organizations can use the same application while their business data remains logically isolated.
-
-The system is built as a **modular monolith**.
-
-Instead of distributing every business capability into a separate service, each capability is represented as an independent module with explicit architectural boundaries.
-
-Current business modules include:
-
-```text
-Auth
-Users
-Organizations
-Products
-Inventory
-Customers
-Orders
-```
-
-Each module follows a **Ports & Adapters** structure:
-
-```text
-domain
-feature
-port
-adapter
-```
-
-This keeps business rules and use cases separated from infrastructure concerns such as PostgreSQL, Redis, HTTP, and external services.
+| Technology     | Purpose                            |
+| -------------- | ---------------------------------- |
+| **Rust**       | Backend language                   |
+| **Axum**       | HTTP framework                     |
+| **PostgreSQL** | Relational database                |
+| **SQLx**       | Database access                    |
+| **Argon2**     | Password hashing                   |
+| **JWT**        | Authentication tokens              |
+| **Tokio**      | Async runtime                      |
+| **Docker**     | Development/deployment environment |
 
 ---
 
-# 🏆 Engineering Highlights
+## 🏗️ Architecture
 
-The project focuses on backend engineering problems beyond basic CRUD.
+The project follows a **modular monolith** architecture combined with **Hexagonal Architecture (Ports & Adapters)**.
 
-### 🏢 Multi-Tenancy
-
-* Explicit tenant context
-* Tenant-scoped data access
-* Organization membership
-* Tenant-aware authorization
-* Cross-tenant access prevention
-* Tenant isolation testing
-
-### 🔐 Security
-
-* Argon2 password hashing
-* Short-lived access tokens
-* Refresh-token lifecycle management
-* Token revocation
-* Role-based authorization
-* Resource-level authorization
-* Secure error handling
-
-### 💳 Consistency
-
-* Transactional order creation
-* Inventory validation
-* Database constraints
-* PostgreSQL as the source of truth
-* Explicit transaction boundaries
-
-### ⚔️ Concurrency
-
-* Row-level inventory locking
-* Transaction-safe stock updates
-* Protection against overselling
-* Concurrency integration tests
-
-### ⚡ Performance
-
-* SQLx connection pooling
-* Redis caching
-* Pagination
-* Tenant-aware indexes
-* Avoidance of N+1 queries
-
-### 🔭 Operations
-
-* Structured logging
-* Request IDs
-* Prometheus metrics
-* Health checks
-* Docker
-* CI/CD
-* Graceful shutdown
-
----
-
-# 🏗️ Architecture
-
-The system combines two architectural concepts:
-
-```text
-Modular Monolith
-       +
-Hexagonal Architecture
-       =
-Business modules with explicit boundaries
-```
-
-High-level architecture:
-
-```mermaid
-flowchart TB
-
-    Client["Web / Mobile Client"]
-
-    API["Axum HTTP API"]
-
-    subgraph Application["Rust Application"]
-
-        Auth["Auth"]
-        Users["Users"]
-        Organizations["Organizations"]
-        Products["Products"]
-        Inventory["Inventory"]
-        Customers["Customers"]
-        Orders["Orders"]
-
-    end
-
-    subgraph Infrastructure["Infrastructure"]
-
-        PostgreSQL[("PostgreSQL")]
-        Redis[("Redis")]
-        Queue["Job Queue"]
-        Worker["Background Worker"]
-
-    end
-
-    Client --> API
-
-    API --> Auth
-    API --> Users
-    API --> Organizations
-    API --> Products
-    API --> Inventory
-    API --> Customers
-    API --> Orders
-
-    Auth --> PostgreSQL
-    Users --> PostgreSQL
-    Organizations --> PostgreSQL
-    Products --> PostgreSQL
-    Inventory --> PostgreSQL
-    Customers --> PostgreSQL
-    Orders --> PostgreSQL
-
-    API --> Redis
-
-    Orders --> Queue
-    Queue --> Worker
-
-    Worker --> PostgreSQL
-    Worker --> Redis
-```
-
----
-
-# 🧱 Architectural Boundaries
-
-The source tree is organized around four top-level responsibilities:
+The current high-level structure is:
 
 ```text
 src/
 ├── app/
+│
 ├── infrastructure/
+│
 ├── modules/
+│   └── auth/
+│       ├── domain/
+│       ├── feature/
+│       ├── port/
+│       └── adapter/
+│
 └── shared/
 ```
 
-Each has a deliberately different responsibility.
+### `app/`
 
----
-
-## `app/`
-
-The `app` layer is responsible for **application composition**.
+Responsible for application composition and startup.
 
 Typical responsibilities:
 
-* Router construction
-* Application state
-* Dependency wiring
-* Middleware registration
-* Server startup
-* HTTP composition
-
-Conceptually:
-
 ```text
-app
- ├── router
- ├── state
- └── startup
+app/
+├── router
+├── state
+└── startup
 ```
 
-The `app` layer connects the system together.
+The application layer is responsible for connecting the different parts of the system.
 
-It should not contain core business rules.
+It should not contain core business logic.
 
 ---
 
-## `modules/`
+### `infrastructure/`
 
-`modules` contains the actual business capabilities of the platform.
+Contains technology-specific infrastructure used by the application.
 
-```text
-modules/
-├── auth/
-├── users/
-├── organizations/
-├── products/
-├── inventory/
-├── customers/
-└── orders/
-```
-
-Each module owns a specific business capability.
-
-For example:
-
-```text
-products
-```
-
-owns product-related rules and use cases.
-
-```text
-inventory
-```
-
-owns inventory-related rules and operations.
-
-```text
-orders
-```
-
-owns order creation, order state, order calculations, and order workflows.
-
----
-
-## `infrastructure/`
-
-Infrastructure contains technical implementations.
-
-Typical responsibilities include:
+Examples include:
 
 ```text
 infrastructure/
 ├── database/
-├── redis/
 ├── authentication/
-├── jobs/
+├── redis/
 └── observability/
 ```
 
-Infrastructure knows about technologies.
-
-For example:
-
-```text
-PostgreSQL
-Redis
-SQLx
-JWT libraries
-Message queues
-Prometheus
-```
-
-Business logic should not need to know how those technologies are implemented.
+Infrastructure code deals with technologies such as PostgreSQL, SQLx, JWT libraries, and other external systems.
 
 ---
 
-## `shared/`
+### `modules/`
 
-`shared` contains small primitives that are genuinely shared between modules.
+Contains the business capabilities of the application.
 
-Examples:
-
-```text
-shared/
-├── error/
-├── pagination/
-├── response/
-├── validation/
-└── types/
-```
-
-`shared` should remain intentionally small.
-
-It should not become a generic dumping ground for unrelated utilities.
-
----
-
-# 📁 Project Structure
-
-```text
-src/
-├── main.rs
-│
-├── app/
-│   ├── mod.rs
-│   ├── router.rs
-│   ├── state.rs
-│   └── startup.rs
-│
-├── infrastructure/
-│   ├── database/
-│   ├── redis/
-│   ├── authentication/
-│   ├── jobs/
-│   └── observability/
-│
-├── modules/
-│   ├── auth/
-│   ├── users/
-│   ├── organizations/
-│   ├── products/
-│   ├── inventory/
-│   ├── customers/
-│   └── orders/
-│
-└── shared/
-    ├── error/
-    ├── pagination/
-    ├── response/
-    ├── validation/
-    └── types/
-
-migrations/
-tests/
-docs/
-docker/
-```
-
-> The exact files may evolve as the project grows; the important invariant is the separation of responsibilities.
-
----
-
-# 🧩 Module Structure
-
-Every business module follows the same four-part architecture:
+Currently:
 
 ```text
 modules/
-└── orders/
-    ├── domain/
-    ├── feature/
-    ├── port/
-    └── adapter/
+└── auth/
 ```
 
-This is the core architectural decision of the project.
+Additional modules may be introduced as the project grows.
+
+Each module follows the same architectural boundary:
+
+```text
+auth/
+├── domain/
+├── feature/
+├── port/
+└── adapter/
+```
 
 ---
 
-# 🧠 `domain/`
+## 🔐 Auth Module
 
-The `domain` layer contains the **business model and business invariants**.
+The current development focus is the authentication module.
 
-Typical contents:
-
-```text
-domain/
-├── entity
-├── value_object
-├── domain_error
-└── business_rules
-```
-
-Examples:
-
-```text
-Order
-OrderItem
-OrderStatus
-Money
-Quantity
-```
-
-The domain should not depend on:
-
-```text
-Axum
-PostgreSQL
-SQLx
-Redis
-HTTP
-JWT
-```
-
-The purpose is to keep the core business model independent from technical implementation details.
-
----
-
-# 🎯 `feature/`
-
-The `feature` layer contains **application use cases**.
-
-Examples:
-
-```text
-CreateOrder
-CancelOrder
-GetOrder
-ListOrders
-
-CreateProduct
-UpdateProduct
-DeleteProduct
-
-AdjustInventory
-GetInventory
-```
-
-The feature layer answers:
-
-> **What can the system do?**
-
-It coordinates the domain objects and required ports to execute a business operation.
-
-Conceptually:
+The intended flow is:
 
 ```text
 HTTP Request
      │
      ▼
-Feature
+   Handler
      │
-     ├── Domain Rules
+     ▼
+  Feature / Service
      │
-     └── Ports
-            │
-            ▼
-         Adapter
+     ▼
+    Port
+     │
+     ▼
+   Adapter
+     │
+     ▼
+ PostgreSQL
 ```
 
----
+### Domain
 
-# 🔌 `port/`
-
-Ports define the boundaries between business logic and external systems.
+Contains authentication-related business concepts and rules.
 
 Examples:
 
 ```text
-port/
-├── repository.rs
-├── cache.rs
-├── event.rs
-├── clock.rs
-└── authentication.rs
+domain/
+├── entity/
+├── value_object/
+└── error/
 ```
 
-A port describes **what the application needs**, without specifying how the dependency works.
+The domain should remain independent from Axum, PostgreSQL, SQLx, and other infrastructure technologies.
 
-Example:
+---
+
+### Feature
+
+Contains application use cases.
+
+The authentication module is being developed around features such as:
+
+```text
+feature/
+├── register/
+├── login/
+└── logout/
+```
+
+Each feature contains the application logic required to perform that operation.
+
+---
+
+### Port
+
+Defines the interfaces that the application needs from external systems.
+
+For example:
 
 ```rust
-#[async_trait]
-pub trait OrderRepository {
-    async fn create(&self, order: &Order) -> Result<(), RepositoryError>;
-    async fn find_by_id(
-        &self,
-        tenant_id: TenantId,
-        order_id: OrderId,
-    ) -> Result<Option<Order>, RepositoryError>;
+trait UserRepository {
+    // persistence operations
 }
 ```
 
-The feature layer depends on the abstraction.
-
-It does not need to know whether the implementation uses PostgreSQL, an in-memory database, or another persistence mechanism.
+The feature layer depends on the abstraction rather than directly depending on PostgreSQL.
 
 ---
 
-# 🔧 `adapter/`
+### Adapter
 
-Adapters implement the ports.
-
-Examples:
-
-```text
-adapter/
-├── postgres/
-├── redis/
-├── http/
-└── messaging/
-```
+Contains implementations of those ports and HTTP-specific code.
 
 For example:
 
 ```text
-port/
-└── OrderRepository
-
-        ▲
-        │ implements
-        │
 adapter/
-└── PostgresOrderRepository
+├── postgres/
+├── axum/
+├── argon2/
+└── jwt/
 ```
 
-This is where technology-specific code lives.
+This is where technology-specific implementations live.
 
 ---
 
-# 🔄 Dependency Direction
+## 🔄 Dependency Flow
 
 The intended dependency direction is:
 
 ```text
-                  ┌─────────────┐
-                  │   Adapter   │
-                  └──────┬──────┘
-                         │
-                    implements
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │    Port     │
-                  └──────▲──────┘
-                         │
-                      depends
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │   Feature   │
-                  └──────┬──────┘
-                         │
-                      uses
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │   Domain    │
-                  └─────────────┘
+        Adapter
+           │
+       implements
+           ▼
+         Port
+           ▲
+        depends
+           │
+           ▼
+        Feature
+           │
+          uses
+           ▼
+        Domain
 ```
 
 The key principle is:
@@ -603,877 +248,292 @@ The key principle is:
 
 ---
 
-# 🔐 Authentication
+## 🧩 Application Wiring
 
-Authentication follows a short-lived access-token and refresh-token model.
-
-```text
-Login
-  │
-  ▼
-Validate Credentials
-  │
-  ▼
-Create Session
-  │
-  ├── Access Token
-  │
-  └── Refresh Token
-```
-
-Passwords are hashed using Argon2.
-
-Access tokens are short-lived.
-
-Refresh tokens support:
-
-* Rotation
-* Expiration
-* Revocation
-* Session association
-* Reuse detection
-
----
-
-# 🔑 Authorization
-
-Authorization is separate from authentication.
-
-```text
-User
- │
- ▼
-Organization Membership
- │
- ▼
-Role
- │
- ▼
-Permission
- │
- ▼
-Resource Authorization
-```
-
-Example:
-
-```text
-ADMIN
-├── products.read
-├── products.write
-├── inventory.read
-├── inventory.write
-├── orders.read
-└── orders.write
-```
-
-Authorization should be evaluated before protected business operations execute.
-
----
-
-# 🏢 Multi-Tenancy
-
-The application uses a **shared database / shared schema** model.
-
-Tenant-owned records contain a tenant identifier.
-
-Example:
-
-```sql
-CREATE TABLE products (
-    id UUID PRIMARY KEY,
-    tenant_id UUID NOT NULL,
-    name TEXT NOT NULL,
-    price NUMERIC(12, 2) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
-
-Tenant context flows through the request:
-
-```text
-Request
-   │
-   ▼
-Authentication
-   │
-   ▼
-Tenant Resolution
-   │
-   ▼
-Authorization
-   │
-   ▼
-Feature
-   │
-   ▼
-Tenant-aware Port
-   │
-   ▼
-Adapter
-   │
-   ▼
-PostgreSQL
-```
-
-Queries must always include the tenant boundary.
-
-```sql
-SELECT *
-FROM products
-WHERE tenant_id = $1
-  AND id = $2;
-```
-
----
-
-# 🔒 Tenant Isolation
-
-Tenant isolation is treated as a security boundary.
+Application dependencies are created and connected during startup.
 
 For example:
 
 ```text
-Tenant A
-   │
-   │ requests Product B
-   ▼
-Tenant-scoped repository
-   │
-   ▼
-tenant_id = A
-   │
-   ▼
-Product B not visible
-   │
-   ▼
-404 Not Found
+Configuration
+      │
+      ▼
+  PostgreSQL Pool
+      │
+      ▼
+ Repository
+      │
+      ├──────────────┐
+      ▼              ▼
+ PasswordHasher    JWT Service
+      │              │
+      └──────┬───────┘
+             ▼
+          AuthDeps
+             │
+     ┌───────┼────────┐
+     ▼       ▼        ▼
+ Register   Login    Logout
+ Service    Service  Service
+     └───────┼────────┘
+             ▼
+         AuthState
+             │
+             ▼
+        Axum Router
 ```
 
-Cross-tenant access should be explicitly tested.
+This keeps dependency construction outside the business logic.
 
-Examples:
+---
+
+## 🗄️ Database
+
+PostgreSQL is used as the primary persistence layer.
+
+SQLx is used for database access.
+
+Database-specific models are kept separate from domain entities where appropriate.
+
+Conceptually:
 
 ```text
-Tenant A cannot read Tenant B products
-Tenant A cannot modify Tenant B products
-Tenant A cannot read Tenant B orders
-Tenant A cannot modify Tenant B inventory
+PostgreSQL
+     │
+     ▼
+ UserModel
+     │
+     ▼
+ Domain User
+     │
+     ▼
+ Application Service
+```
+
+This separation prevents database representation from becoming tightly coupled to the domain model.
+
+---
+
+## 🔑 Authentication
+
+The authentication system is being developed around:
+
+* Secure password hashing with Argon2
+* User registration
+* Credential verification
+* JWT-based authentication
+* Token lifecycle management
+* Authentication error handling
+* Request validation
+
+Planned authentication flow:
+
+```text
+Register
+   │
+   ├── Validate input
+   ├── Check existing user
+   ├── Hash password
+   └── Persist user
+
+Login
+   │
+   ├── Find user
+   ├── Verify password
+   └── Issue token
 ```
 
 ---
 
-# 🗄️ Database Architecture
+## ❌ Error Handling
 
-PostgreSQL is the **authoritative source of business data**.
+The application uses an application-level error model rather than exposing infrastructure errors directly to API clients.
 
-The database is responsible for enforcing important invariants through:
-
-* Foreign keys
-* Unique constraints
-* Check constraints
-* Transactions
-* Row-level locks
-* Tenant-aware indexes
-
-Example:
-
-```sql
-CREATE INDEX idx_products_tenant_created
-ON products (tenant_id, created_at DESC);
-```
-
----
-
-# 💳 Transactions
-
-Business operations involving multiple state changes should execute inside a transaction.
-
-Order creation:
+Conceptually:
 
 ```text
-BEGIN
-  │
-  ├── Validate customer
-  ├── Validate products
-  ├── Lock inventory
-  ├── Validate stock
-  ├── Calculate total
-  ├── Create order
-  ├── Create order items
-  ├── Decrease inventory
-  │
-COMMIT
-```
-
-Any failure results in:
-
-```text
-ROLLBACK
-```
-
-This protects consistency between orders and inventory.
-
----
-
-# ⚔️ Concurrency
-
-Inventory is a critical concurrency boundary.
-
-Example:
-
-```text
-Inventory = 1
-```
-
-Three users attempt to purchase simultaneously.
-
-The database transaction locks the relevant inventory row:
-
-```sql
-SELECT quantity
-FROM inventory
-WHERE product_id = $1
-FOR UPDATE;
-```
-
-Expected result:
-
-```text
-Request A → Success
-Request B → Rejected
-Request C → Rejected
-
-Final inventory = 0
-```
-
-The database, rather than application timing, determines the serialization point.
-
----
-
-# ⚡ Caching
-
-Redis is used as a performance optimization.
-
-Potential cache targets:
-
-* Product details
-* Product listings
-* Organization settings
-* Permission lookups
-* Rate limits
-
-Redis is **not** the authoritative store for business data.
-
-```text
-Request
-  │
-  ▼
-Redis
-  │
-  ├── HIT ──► Response
-  │
-  └── MISS
+Repository Error
        │
        ▼
-   PostgreSQL
+ Feature Error
        │
        ▼
-      Redis
+  Application Error
+       │
+       ▼
+ HTTP Response
 ```
+
+Example mappings:
+
+| Application Error |                 HTTP Status |
+| ----------------- | --------------------------: |
+| Validation        |           `400 Bad Request` |
+| Unauthorized      |          `401 Unauthorized` |
+| Forbidden         |             `403 Forbidden` |
+| Not Found         |             `404 Not Found` |
+| Conflict          |              `409 Conflict` |
+| Internal Error    | `500 Internal Server Error` |
+
+The API should expose safe, consistent error responses without leaking implementation details.
 
 ---
 
-# 🔄 Background Jobs
-
-Long-running operations are moved outside the request lifecycle.
-
-Examples:
-
-* Email delivery
-* Password reset
-* Email verification
-* Notifications
-* Cleanup
-* Cache warming
-
-```text
-Feature
-   │
-   ▼
-Job Port
-   │
-   ▼
-Queue Adapter
-   │
-   ▼
-Worker
-```
-
-Jobs should be designed for:
-
-* Idempotency
-* Retry
-* Backoff
-* Failure handling
-* Observability
-
----
-
-# ❌ Error Handling
-
-Errors are represented through a consistent application error model.
-
-Example:
-
-```rust
-pub enum AppError {
-    Validation,
-    Unauthorized,
-    Forbidden,
-    NotFound,
-    Conflict,
-    Database,
-    Internal,
-}
-```
-
-HTTP mapping:
-
-| Error        | Status |
-| ------------ | -----: |
-| Validation   |  `400` |
-| Unauthorized |  `401` |
-| Forbidden    |  `403` |
-| Not Found    |  `404` |
-| Conflict     |  `409` |
-| Rate Limited |  `429` |
-| Internal     |  `500` |
-
-Internal infrastructure errors should be logged internally without exposing implementation details to clients.
-
----
-
-# 🌐 API Design
-
-API endpoints are versioned:
-
-```text
-/api/v1/auth
-/api/v1/users
-/api/v1/organizations
-/api/v1/products
-/api/v1/inventory
-/api/v1/customers
-/api/v1/orders
-```
-
-Example:
-
-```http
-GET /api/v1/products?page=1&limit=20
-```
-
-Response:
-
-```json
-{
-  "data": [],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 0
-  }
-}
-```
-
-The API aims for:
-
-* Predictable HTTP semantics
-* Consistent errors
-* Explicit validation
-* Pagination
-* Stable response formats
-* OpenAPI documentation
-
----
-
-# 🔒 Security
-
-Security follows defense in depth.
-
-### Application
-
-* Input validation
-* Authorization
-* Tenant isolation
-* Rate limiting
-* Secure error handling
+## 📋 Current Status
 
 ### Authentication
 
-* Argon2
-* Short-lived access tokens
-* Refresh-token rotation
-* Token revocation
-* Session management
+* [ ] Project configuration
+* [ ] PostgreSQL connection
+* [ ] Database migrations
+* [ ] User model
+* [ ] User repository
+* [ ] Domain user entity
+* [ ] Registration feature
+* [ ] Password hashing
+* [ ] Login feature
+* [ ] JWT generation
+* [ ] Logout strategy
+* [ ] Authentication middleware
+* [ ] Error mapping
+* [ ] Request validation
+* [ ] Integration tests
 
-### Database
+### Engineering
 
-* Parameterized SQL
-* Constraints
-* Foreign keys
-* Transactions
-* Least-privilege credentials
-
-### Infrastructure
-
-* TLS
-* Secret management
-* Non-root containers
-* Minimal runtime images
-
----
-
-# 🧪 Testing
-
-Testing focuses on business behavior and failure scenarios.
-
-## Unit Tests
-
-Test:
-
-* Domain rules
-* Value objects
-* Calculations
-* Authorization
-* Validation
-
-## Integration Tests
-
-Test:
-
-* PostgreSQL repositories
-* Redis adapters
-* Transactions
-* Database constraints
-* Tenant isolation
-
-## Security Tests
-
-Examples:
-
-```text
-Tenant A cannot access Tenant B resources
-Tenant A cannot modify Tenant B resources
-Unauthorized users cannot execute protected features
-Users cannot access organizations they do not belong to
-```
-
-## Concurrency Tests
-
-Example:
-
-```text
-Initial inventory = 1
-
-Concurrent purchases = 10
-
-Expected successful purchases = 1
-Expected rejected purchases = 9
-Final inventory = 0
-```
+* [ ] Unit tests
+* [ ] Integration tests
+* [ ] API documentation
+* [ ] Docker setup
+* [ ] CI pipeline
+* [ ] Structured logging
+* [ ] Health checks
 
 ---
 
-# 📊 Observability
+## 🗺️ Roadmap
 
-The backend uses structured logging and metrics.
+### Phase 1 — Authentication
 
-Example request log:
-
-```text
-INFO request completed
-    request_id=7f31...
-    tenant_id=...
-    user_id=...
-    method=POST
-    path=/api/v1/orders
-    status=201
-    duration_ms=42
-```
-
-Sensitive values must never be logged.
-
-Do not log:
+Build a complete authentication system:
 
 ```text
-passwords
-access tokens
-refresh tokens
-authorization headers
-secrets
+Register
+Login
+Logout
+JWT
+Password hashing
+Validation
+Error handling
+Tests
 ```
 
-Recommended metrics include:
+### Phase 2 — Authorization
 
-* HTTP request rate
-* HTTP latency
-* HTTP error rate
-* Database latency
-* Database pool usage
-* Redis latency
-* Authentication failures
-* Order failures
-* Background-job failures
+Introduce:
+
+```text
+Roles
+Permissions
+Protected routes
+Authorization middleware
+```
+
+### Phase 3 — E-Commerce Modules
+
+After the authentication foundation is stable, additional modules may be added:
+
+```text
+Users
+Products
+Inventory
+Orders
+Customers
+Organizations
+```
+
+These modules will follow the same modular architecture.
 
 ---
 
-# 💻 Local Development
+## 🧪 Testing Strategy
 
-## Requirements
-
-* Rust
-* Cargo
-* Docker
-* Docker Compose
-* SQLx CLI
-
-Start infrastructure:
-
-```bash
-docker compose up -d postgres redis
-```
-
-Run migrations:
-
-```bash
-sqlx migrate run
-```
-
-Start the application:
-
-```bash
-cargo run
-```
-
-Run tests:
-
-```bash
-cargo test
-```
-
-Format:
-
-```bash
-cargo fmt --check
-```
-
-Lint:
-
-```bash
-cargo clippy --all-targets --all-features -- -D warnings
-```
-
----
-
-# 🐳 Docker
-
-The application uses a multi-stage Docker build.
+The project aims to test the system at multiple levels:
 
 ```text
-┌────────────────────────┐
-│     Build Stage        │
-│                        │
-│ Rust + Cargo           │
-│        │               │
-│        ▼               │
-│ Compiled Binary        │
-└────────────┬───────────┘
-             │
-             ▼
-┌────────────────────────┐
-│     Runtime Stage      │
-│                        │
-│ Minimal Image          │
-│ Non-root User          │
-│ Application Binary     │
-└────────────────────────┘
-```
-
----
-
-# 🔁 CI/CD
-
-The CI pipeline should verify:
-
-```text
-Pull Request
-      │
-      ▼
-cargo fmt
-      │
-      ▼
-Clippy
-      │
-      ▼
 Unit Tests
-      │
-      ▼
-Integration Tests
-      │
-      ▼
-Security Checks
-      │
-      ▼
-Docker Build
-      │
-      ▼
-Deployment
+    ↓
+Feature Tests
+    ↓
+Repository / Database Tests
+    ↓
+HTTP Integration Tests
 ```
 
----
+Important authentication cases include:
 
-# ⚡ Performance
-
-Performance decisions focus on fundamentals first.
-
-### PostgreSQL
-
-* Correct indexes
-* Pagination
-* Connection pooling
-* Avoid N+1 queries
-* Query analysis
-* Short transactions
-
-### Application
-
-* Stateless API
-* Efficient serialization
-* Controlled concurrency
-* Request limits
-
-### Redis
-
-Cache only data where caching provides measurable value.
+* Successful registration
+* Duplicate email
+* Invalid email
+* Weak/invalid password
+* Successful login
+* Invalid credentials
+* Missing authentication
+* Invalid token
+* Expired token
 
 ---
 
-# 💥 Failure Handling
+## 💡 Why I'm Building This
 
-The system assumes infrastructure failures will occur.
+This project is being built as a practical exploration of backend engineering with Rust.
 
-### PostgreSQL unavailable
-
-The API should fail gracefully and return an appropriate error without exposing database internals.
-
-### Redis unavailable
-
-For non-critical cache operations:
+Rather than implementing a large number of CRUD endpoints, the initial focus is on understanding the boundaries between:
 
 ```text
-Redis failure
-     │
-     ▼
-Log failure
-     │
-     ▼
-Fallback to PostgreSQL
+HTTP
+ ↓
+Application
+ ↓
+Domain
+ ↓
+Ports
+ ↓
+Infrastructure
+ ↓
+Database
 ```
 
-Redis should not silently become the source of truth for business data.
+The project will evolve incrementally as new backend concepts are implemented and tested.
 
 ---
 
-# 📝 Architecture Decision Records
+## 🚧 Project Status
 
-Major decisions should be documented under:
+This repository is **actively under development**.
 
-```text
-docs/
-└── adr/
-    ├── 0001-modular-monolith.md
-    ├── 0002-hexagonal-architecture.md
-    ├── 0003-shared-schema-multi-tenancy.md
-    ├── 0004-authentication-strategy.md
-    ├── 0005-refresh-token-rotation.md
-    ├── 0006-inventory-concurrency.md
-    └── 0007-redis-caching.md
-```
+The current milestone is the **authentication system**.
 
-Each ADR should document:
-
-```text
-Context
-Decision
-Alternatives
-Consequences
-```
+Features described in the roadmap are planned work and should not be considered implemented until they appear in the repository's code and tests.
 
 ---
 
-# 🏭 Production Checklist
+## 👨‍💻 Author
 
-## Security
+**Asdaq**
 
-* [ ] Argon2 password hashing
-* [ ] Secure token configuration
-* [ ] Refresh-token rotation
-* [ ] Token revocation
-* [ ] RBAC
-* [ ] Resource authorization
-* [ ] Tenant isolation
-* [ ] Rate limiting
-* [ ] TLS
-* [ ] Secret management
+Building backend systems with Rust while exploring:
 
-## Database
-
-* [ ] PostgreSQL backups
-* [ ] Migration strategy
-* [ ] Connection pooling
-* [ ] Required indexes
-* [ ] Foreign keys
-* [ ] Unique constraints
-* [ ] Check constraints
-* [ ] Slow-query monitoring
-
-## Reliability
-
-* [ ] Transaction boundaries reviewed
-* [ ] Inventory locking
-* [ ] Idempotent jobs
-* [ ] Retry policies
-* [ ] Graceful shutdown
-* [ ] Dependency failure handling
-
-## Observability
-
-* [ ] Structured logs
-* [ ] Request IDs
-* [ ] Metrics
-* [ ] Health checks
-* [ ] Alerts
+* Backend architecture
+* Distributed-system fundamentals
+* Database design
+* Authentication
+* API development
+* Software engineering practices
 
 ---
 
-# 🗺️ Roadmap
+## 📄 License
 
-## Foundation
-
-* [ ] Application bootstrap
-* [ ] PostgreSQL integration
-* [ ] SQLx migrations
-* [ ] Error handling
-* [ ] Configuration
-
-## Identity
-
-* [ ] Registration
-* [ ] Login
-* [ ] Access tokens
-* [ ] Refresh tokens
-* [ ] Token rotation
-* [ ] Password reset
-* [ ] Email verification
-
-## Multi-Tenancy
-
-* [ ] Organizations
-* [ ] Memberships
-* [ ] Roles
-* [ ] Permissions
-* [ ] Tenant resolution
-* [ ] Tenant isolation tests
-
-## Commerce
-
-* [ ] Products
-* [ ] Categories
-* [ ] Inventory
-* [ ] Customers
-* [ ] Orders
-* [ ] Order history
-
-## Platform
-
-* [ ] Redis caching
-* [ ] Background jobs
-* [ ] Metrics
-* [ ] OpenAPI
-* [ ] Audit logging
-* [ ] Health checks
-
-## Production
-
-* [ ] Docker optimization
-* [ ] CI/CD
-* [ ] Load testing
-* [ ] Security hardening
-* [ ] Failure testing
-* [ ] Production deployment
-* [ ] Disaster recovery
-
----
-
-# 🧠 Engineering Philosophy
-
-The project follows a few core principles:
-
-> **Business logic should not know infrastructure details.**
-
-> **The database is a correctness boundary, not merely a persistence mechanism.**
-
-> **Tenant isolation is a security boundary.**
-
-> **Concurrency must be designed explicitly.**
-
-> **Infrastructure should be proportional to the problem.**
-
-> **Observability is part of production design, not an afterthought.**
-
-> **A modular monolith is preferable to premature microservices when the domain and team do not require distributed architecture.**
-
----
-
-# ⭐ Why Modular Monolith?
-
-The project intentionally starts with a modular monolith instead of microservices.
-
-```text
-                 Modular Monolith
-                        │
-          ┌─────────────┼─────────────┐
-          ▼             ▼             ▼
-       Auth          Products       Orders
-          │             │             │
-          └─────────────┼─────────────┘
-                        ▼
-                   PostgreSQL
-```
-
-This provides:
-
-* Simple deployment
-* Low operational overhead
-* Strong module boundaries
-* Straightforward transactions
-* Easier local development
-* Lower distributed-system complexity
-
-If a future requirement creates a strong reason to extract a module into a separate service, the existing boundaries provide a foundation for doing so.
-
----
-
-# 📄 License
-
-This project is licensed under the **MIT License**.
-
-See [`LICENSE`](LICENSE) for details.
-
----
-
-<p align="center">
-
+This project is currently intended as a learning and portfolio project.
 
